@@ -10,10 +10,11 @@
 #include <string.h>
 
 
+char buf[4096];
+
 int main(int argc, char *argv[]){
     HANDLE hDir;
 
-	char buf[1024];
 	FILE_NOTIFY_INFORMATION * fn;
 	int read;
 	WCHAR * action = NULL;
@@ -50,7 +51,7 @@ int main(int argc, char *argv[]){
 	    if(!ReadDirectoryChangesW(
 		hDir,
 		buf,
-		1022,
+		sizeof(buf) - sizeof(WCHAR),
 		1,
 		FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_ACCESS |
 			FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE	| FILE_NOTIFY_CHANGE_LAST_WRITE	|
@@ -63,8 +64,8 @@ int main(int argc, char *argv[]){
 			fprintf(stderr, "Failed to read directory changes\n");
 			break;
 		}
-		for (fn = (FILE_NOTIFY_INFORMATION *)buf; ;){
-			fn->FileName[fn->FileNameLength/2] = 0;
+		for (fn = (FILE_NOTIFY_INFORMATION *)buf; ;fn = (FILE_NOTIFY_INFORMATION *)(((char *)fn) + fn->NextEntryOffset)){
+			WCHAR t;
 			switch(fn->Action){
 			case FILE_ACTION_ADDED:
 				action = L"added";
@@ -84,9 +85,11 @@ int main(int argc, char *argv[]){
 			default:
 				action = L"(unknown)";
 			}
+		    t = fn->FileName[fn->FileNameLength/sizeof(WCHAR)];
+		    fn->FileName[fn->FileNameLength/sizeof(WCHAR)] = 0;
 		    wprintf(L"File %s: %s\n", action, fn->FileName);
+		    fn->FileName[fn->FileNameLength/sizeof(WCHAR)] = t;
 		    if(!fn->NextEntryOffset) break;
-		    fn = (FILE_NOTIFY_INFORMATION *)(((char *)fn) + fn->NextEntryOffset);
 		}
 	}
 	return 0;
