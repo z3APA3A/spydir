@@ -7,6 +7,8 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <io.h>
+#include <fcntl.h>
 #include <string.h>
 
 
@@ -64,6 +66,7 @@ int main(int argc, char *argv[]){
 			fprintf(stderr, "Failed to read directory changes\n");
 			break;
 		}
+		_setmode(_fileno(stdout), _O_U16TEXT);
 		for (fn = (FILE_NOTIFY_INFORMATION *)buf; ;fn = (FILE_NOTIFY_INFORMATION *)(((char *)fn) + fn->NextEntryOffset)){
 			WCHAR t;
 			switch(fn->Action){
